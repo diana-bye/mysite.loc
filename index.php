@@ -42,7 +42,7 @@
 ?>
 
     <div class="container">
-        <h1>Поиск студентов</h1>
+        <h1>Рейтинг студентов</h1>
         <form id="search-form">
             <div class="form-group row">
                 <label for="search-input" class="col-sm-2 col-form-label">Поиск</label>
