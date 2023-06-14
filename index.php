@@ -10,84 +10,21 @@
 </head>
 
 <body>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     
     <?php
         require_once("settings.php");
     ?>
 
-    <script>
-
-    
-
-    var dataDB = (function($) {
-
-        var ui = {
-            $form: $('#filters-form'),
-            $groups: $('#groups'),
-            $groupInput: $('#groups input'),
-            $sort: $('#sort'),
-            $students: $('#students'),
-            $template: $('#students-template')
-        };
-        
-        var template = _.template(ui.$template.html());
-
-        // Инициализация модуля
-        function init() {
-            _bindHandlers();
-            _getData({needsData: 'groups'});
-        }
-
-        function _bindHandlers() {
-            ui.$groupInput.on('change', _getData);
-            ui.$sort.on('change', _getData);
-        }
-
-        function _dataSuccess(responce) {
-            console.log(responce);
-            ui.$students.html(template({students: responce.students}));
-        }
-
-        function _getData() {
-            var data = ui.$form.serialize();
-            if (options && options.needsData) {
-                data += '&needs_data=' + options.needsData;
-            }            
-            $.ajax({
-                url: 'search.php',
-                data: data,
-                type: 'GET',
-                cache: false,
-                dataType: 'json',
-                error: dataError,
-                success: function(responce) {
-                    if (responce.code === 'success') {
-                        dataSuccess(responce);
-                    } else {
-                        dataError(responce);
-                    }
-                }
-            });
-        }
-        // Экспортируем наружу
-        return {
-            init: init
-        }
-    });
-
-    </script>
-
     <form id="filters-form" role="form">
         <div class="col-md-4">
             <h4>Группы</h4>
-            <div id="groups">
-                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="1"> КММО-02-21</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="2"> КМБО-02-22</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="3"> КМБО-02-21</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="4"> КМБО-05-21</label></div>
-            </div>
+            <script id="groups-template" type="text/template">
+                <% _.each(groups, function(item) { %>
+                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="<%= item.group %>"> <%= item.group %></label></div>
+                <% }); %>
+            </script>
         </div>
         <div class="col-md-4">
             <label for="sort">Сортировка</label> 
@@ -118,15 +55,88 @@
          ?>
 
         <tbody>
-            <?php foreach ($students as $i => $student){ ?>
+        <script type="text/javasc">
+        $('#students-template')
+            <% _.each(students, function(student) { %>
                 <tr id="tr-<?=$i?>">
-                    <td><?php echo $student['grade']; ?></td>
-                    <td><?php echo $student['full_name'] ?></td>
-                    <td><?php echo $student['semester'] ?></td>
-                    <td><?php echo $student['group'] ?></td>
+                    <td><%= student.grade %></td>
+                    <td><%- student.full_name %></td>
+                    <td><%= student.semester %></td>
+                    <td><%- student.group %></td>
                 </tr>
-                <?php } ?>                
+            <% }); %>
+        </script>                
         </tbody>
+
+        <script>
+        var dataDB = (function($) {
+
+            var ui = {
+                $form: $('#filters-form'),
+                $groups: $('#groups'),
+                $groupInput: $('#groups input'),
+                $sort: $('#sort'),
+                $students: $('#students'),
+                $studentsTemplate: $('#students-template'),
+                $groupsTemplate: $('#groups-template')
+            };
+            var studentsTemplate = _.template(ui.$studentsTemplate.html());
+            var groupsTemplate = _.template(ui.$groupsTemplate.html());
+
+            // Инициализация модуля
+            function init() {
+                _bindHandlers();
+            }
+
+            function _bindHandlers() {
+                ui.$groupInput.on('change', _getData);
+                ui.$sort.on('change', _getData);
+            }
+
+            // Сброс фильтра
+            function _resetFilters() {
+                ui.$groups.find('input').removeAttr('checked');
+                ui.$minPrice.val(0);
+            }
+
+            // Ошибка получения данных
+            function _dataError(responce) {
+                console.error('responce', responce);
+            }
+
+            // Успешное получение данных
+            function _dataSuccess(responce) {
+                ui.$students.html(studentsTemplate({students: responce.data.students}));
+                if (responce.data.groups) {
+                    ui.$groups.html(groupsTemplate({groups: responce.data.groups}));
+                }
+            }
+
+            function _getData() {
+                var myData = ui.$form.serialize();
+                $.ajax({
+                    url: 'search.php',
+                    data: myData,
+                    type: 'GET',
+                    cache: false,
+                    dataType: 'json',
+                    error: _dataError,
+                    success: function(responce) {
+                        if (responce.code === 'success') {
+                            _dataSuccess(responce);
+                        } else {
+                            _dataError(responce);
+                        }
+                    }
+                });
+            }
+            // Экспортируем наружу
+            return {
+                init: init
+            }
+        })(jQuery);
+    </script>
+
     </table>
 </body>
 </html>
