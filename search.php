@@ -1,42 +1,64 @@
-<?
-    // function convertGradeToInt($grade) {
-    //     switch ($grade) {
-    //     case 'неуд':
-    //         return 2;
-    //     case 'уд':
-    //         return 3;
-    //     case 'хор':
-    //         return 4;
-    //     case 'отл':
-    //         return 5;
-    //     }
-    // };
+<?php
 
-    $search = @$_GET["search"];
-    $sort = @$_GET["sort"];
+require_once("settings.php");
 
-    if (array_key_exists($sort, $sort_list)) {
-        $sort_sql = $sort_list[$sort];
-    }
-    else {
-        $sort_sql = reset($sort_list);
-    }
+function getOptions() {
+ 
+    // Бренды
+    $groups = (isset($_GET['groups'])) ? implode(',', $_GET['groups']) : null;
+ 
+    // Сортировка
+    $sort = (isset($_GET['sort'])) ? $_GET['sort'] : 'r.grade_asc';
+    $sort = explode('_', $sort);
+    $sortBy = $sort[0];
+    $sortDir = $sort[1];
+ 
+    return array(
+        'groups' => $groups,
+        'sort_by' => $sortBy,
+        'sort_dir' => $sortDir
+    );
+}
 
-    $query = "SELECT s.full_name, s.group, c.semester, r.grade FROM students s
-    JOIN rating r ON s.student_id = r.student_id 
-    JOIN control c ON r.control_id = c.id
-    WHERE
-    s.full_name ILIKE '%$search%' OR 
-    s.group ILIKE '%$search%' OR 
-    c.semester = '$search' 
-    ORDER BY $sort_sql;";
+function getData($options) {
+    global $dbconnect;
+    $sortBy = $options['sort_by'];
+    $sortDir = $options['sort_dir'];
+ 
+    // Необязательные параметры
 
-    $result = pg_query($dbconnect, $query) or die('Database error' . pg_last_error());
+    $groups = $options['groups'];
+    $groupsWhere =
+        ($groups !== null)
+            ? "WHERE s.group in ($groups)"
+            : '';
+ 
+    $query = "
+        SELECT s.full_name, s.group, c.semester, r.grade FROM students s
+        JOIN rating r ON s.student_id = r.student_id 
+        JOIN control c ON r.control_id = c.id
+            $groupsWhere
+        ORDER BY $sortBy $sortDir;
+    ";
+ 
+    $data = pg_query($dbconnect, $query);
+    return pg_fetch_all($data);
+}
 
-    $rows = array();
-    while ($row = pg_fetch_assoc($result)) {
-        $rows[] = $row;
-    }
+try {
+    
+    // Получаем данные от клиента
+    $options = getOptions();
+    
+    // Получаем товары
+    $students = getData($options);
+}
 
-    print json_encode($rows);
+catch (Exception $e) {
+    // Возвращаем клиенту ответ с ошибкой
+    echo json_encode(array(
+        'code' => 'error',
+        'message' => $e->getMessage()
+    ));
+}
 ?>

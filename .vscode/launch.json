@@ -1,24 +1,19 @@
 {
   "version": "0.2.0",
   "configurations": [
-    {
-      "name": "C/C++ Runner: Debug Session",
-      "type": "cppdbg",
-      "request": "launch",
-      "args": [],
-      "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "c:/xampp/htdocs/mysite.loc",
-      "program": "c:/xampp/htdocs/mysite.loc/build/Debug/outDebug",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
-    }
+      {
+          "name": "Listen for XDebug",
+          "type": "php",
+          "request": "launch",
+          "port": 5432
+      },
+      {
+          "name": "Launch currently open script",
+          "type": "php",
+          "request": "launch",
+          "program": "c:/xampp/htdocs/mysite.loc/build/Debug/outDebug",
+          "cwd": "c:/xampp/htdocs/mysite.loc",
+          "port": 5432
+      }
   ]
 }
