@@ -1,119 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
+
 <head>
-  <title>Поиск студентов</title>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <style>
-    .container {
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 </head>
 
 <body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    
     <?php
+        require_once("settings.php");
+    ?>
 
-        include_once("./settings.php");
-        include_once("./search.php");
+    <script>
 
-        function sort_link_th($title, $a, $b) {
-            $sort = @$_GET['sort'];
+    
 
-            if ($sort == $a) {
-                return '<a class="active" id="sort-select" href="?sort=' . $b . '">' . $title . ' <i>▲</i></a>';
-            } else if ($sort == $b) {
-                return '<a class="active"  id="sort-select" href="?sort=' . $a . '">' . $title . ' <i>▼</i></a>';
-            } else {
-                return '<a href="?sort=' . $a . '">' . $title . '</a>';  
-            }
+    var dataDB = (function($) {
+
+        var ui = {
+            $form: $('#filters-form'),
+            $groups: $('#groups'),
+            $groupInput: $('#groups input'),
+            $sort: $('#sort'),
+            $students: $('#students'),
+            $template: $('#students-template')
+        };
+        
+        var template = _.template(ui.$template.html());
+
+        // Инициализация модуля
+        function init() {
+            _bindHandlers();
+            _getData({needsData: 'groups'});
         }
 
-    $sort_list = array(
-        'full_name_asc' => 's.full_name',
-        'full_name_desc' => 's.full_name DESC',
-        'group_asc' => 's.group',
-        'group_desc' => 's.group DESC',
-        'semester_asc'  => 'c.semester',
-        'semester_desc'  => 'c.semester DESC',
-        'grade_asc' => 'r.grade',
-        'grade_desc' => 'r.grade DESC'
-    );
-?>
+        function _bindHandlers() {
+            ui.$groupInput.on('change', _getData);
+            ui.$sort.on('change', _getData);
+        }
 
-    <div class="container">
-        <h1>Рейтинг студентов</h1>
-        <form id="search-form">
-            <div class="form-group row">
-                <label for="search-input" class="col-sm-2 col-form-label">Поиск</label>
-                <div class="col-sm-8">
-                <input type="text" class="form-control" id="search-input" placeholder="Введите имя, группу или номер семестра">
-                </div>
-                <div class="col-sm-2">
-                <button type="submit" class="btn btn-primary mb-2">Искать</button>
-                </div>
+        function _dataSuccess(responce) {
+            console.log(responce);
+            ui.$students.html(template({students: responce.students}));
+        }
+
+        function _getData() {
+            var data = ui.$form.serialize();
+            if (options && options.needsData) {
+                data += '&needs_data=' + options.needsData;
+            }            
+            $.ajax({
+                url: 'search.php',
+                data: data,
+                type: 'GET',
+                cache: false,
+                dataType: 'json',
+                error: dataError,
+                success: function(responce) {
+                    if (responce.code === 'success') {
+                        dataSuccess(responce);
+                    } else {
+                        dataError(responce);
+                    }
+                }
+            });
+        }
+        // Экспортируем наружу
+        return {
+            init: init
+        }
+    });
+
+    </script>
+
+    <form id="filters-form" role="form">
+        <div class="col-md-4">
+            <h4>Группы</h4>
+            <div id="groups">
+                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="1"> КММО-02-21</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="2"> КМБО-02-22</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="3"> КМБО-02-21</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="groups[]" value="4"> КМБО-05-21</label></div>
             </div>
-        </form>
-        
-    </div>
-    <table>
+        </div>
+        <div class="col-md-4">
+            <label for="sort">Сортировка</label> 
+            <br>
+            <select id="sort" name="sort" class="form-control">
+                <option value="s.full_name_asc">По имени, А-Я</option>
+                <option value="s.full_name_desc">По имени, Я-А</option>
+                <option value="r.grade_asc">По среднему баллу, по возрастанию</option>
+                <option value="r.grade_desc">По среднему баллу, по убыванию</option>
+                <option value="c.semester_desc">По семестру, по возрастанию</option>
+                <option value="c.semester_desc">По семестру, по убыванию</option>
+            </select>
+        </div>
+    </form>
+
+    <table class="table table-borderless">
         <thead>
             <tr>
-                <th><?php echo sort_link_th('Имя', 'full_name_asc', 'full_name_desc'); ?></th>
-                <th><?php echo sort_link_th('Группа', 'group_asc', 'group_desc'); ?></th>
-                <th><?php echo sort_link_th('Семестр', 'semester_asc', 'semester_desc'); ?></th>
-                <th><?php echo sort_link_th('Оценка', 'grade_asc', 'grade_desc'); ?></th>
+                <th>Средний балл</th>
+                <th>ФИО</th>
+                <th>Семестр</th>
+                <th>Группа</th>
             </tr>
         </thead>
+
+        <?php
+            require_once("search.php");
+         ?>
+
         <tbody>
-            <div id="search-results"></div>
+            <?php foreach ($students as $i => $student){ ?>
+                <tr id="tr-<?=$i?>">
+                    <td><?php echo $student['grade']; ?></td>
+                    <td><?php echo $student['full_name'] ?></td>
+                    <td><?php echo $student['semester'] ?></td>
+                    <td><?php echo $student['group'] ?></td>
+                </tr>
+                <?php } ?>                
         </tbody>
     </table>
-
-  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-  <script>
-    $(document).ready(function() {
-      $("#search-form").submit(function(event) {
-        event.preventDefault();
-        var search = $("#search-input").val();
-        var sort = $("#sort-select").val();
-        $.ajax({
-          url: "/search.php",
-          data: {
-            search: search,
-            sort: sort
-          },
-          dataType: "json",
-          success: function(data) {
-            showResults(data);
-          }
-        });
-      });
-
-      $("#search-input").autocomplete({
-        source: function(request, response) {
-          $.ajax({
-            url: "/search.php",
-            data: { search: request.term },
-            dataType: "json",
-            success: response
-          });
-        },
-        select: function(event, ui) {
-          $("#search-input").val(ui.item.full_name);
-          $("#search-form").submit();
-        },
-        minLength: 2
-      });
-
-      function showResults(data) {
-        var table;
-        $.each(data, function(index, row) {
-          table += "<tr><td>" + row.full_name + "</td><td>" + row.group + "</td><td>" + row.semester + "</td><td>" + row.grade + "</td></tr>";
-        });
-        $("#search-results").html(table);
-      }
-    });
-  </script>
 </body>
 </html>
